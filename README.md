@@ -1,5 +1,6 @@
 # helpdesk-macro-lint
 Live page: https://aamirtechs.github.io/helpdesk-macro-lint/
+Use it in your browser: the Pages site above runs the full tool locally, no install needed.
 
 Lint an exported Zendesk or Freshdesk macro library like code: broken or unknown placeholders, dead http links, references to deleted fields, near-duplicate titles and inactive macros, in one Markdown and CSV report.
 

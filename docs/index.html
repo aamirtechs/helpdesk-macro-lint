@@ -77,6 +77,26 @@ footer .links a{margin:0 10px}
   .grid{grid-template-columns:1fr}
 }
 </style>
+
+<style>
+.tool label{display:block;font-weight:600;margin:14px 0 6px;color:var(--navy)}
+.tool input[type=file]{width:100%;padding:12px;border:1.5px dashed #b9c6d4;border-radius:9px;background:#fbfcfe;font:inherit}
+.tool textarea{width:100%;min-height:110px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:Consolas,'Liberation Mono',monospace;font-size:13.5px;background:#fff}
+.tool select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;font:inherit;background:#fff}
+.tool .row{display:flex;gap:14px;flex-wrap:wrap}
+.tool .row>div{flex:1;min-width:200px}
+button.go{background:var(--gold);color:#171106;border:0;font:inherit;font-weight:700;padding:12px 26px;border-radius:9px;cursor:pointer;margin-top:16px}
+button.go:hover{background:var(--gold2)}
+button.dl{background:var(--navy);color:#fff;border:0;font:inherit;font-weight:600;padding:10px 18px;border-radius:9px;cursor:pointer;margin:10px 8px 0 0}
+#status{margin-top:14px;font-weight:600}
+#status.error{color:#b3261e}
+pre.out{max-height:420px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.dragover{outline:3px solid var(--gold);outline-offset:4px}
+.hidden{display:none}
+.check{display:flex;gap:8px;align-items:center;font-weight:600;margin-top:14px}
+.check input{width:18px;height:18px}
+ul.counts{margin:10px 0 0 18px}
+</style>
 </head>
 <body>
 <header class="hero">
@@ -86,28 +106,106 @@ footer .links a{margin:0 10px}
   <a class="btn" href="https://github.com/aamirtechs/helpdesk-macro-lint">View source on GitHub</a>
 </header>
 <main class="wrap">
-  <section>
-    <h2>What it does</h2>
-    <div class="grid">
-      <div class="card">Placeholder syntax and dictionary checks for ticket, requester, assignee, organization, group and current user fields, plus numeric custom field placeholders</div>
-      <div class="card">Unknown placeholders and malformed or unbalanced placeholders reported as errors</div>
-      <div class="card">Links starting with http:// flagged, since macro links should use https</div>
-      <div class="card">References to fields from a deleted-fields list flagged, so renamed or removed fields stop breaking replies quietly</div>
-      <div class="card">Duplicate and near-duplicate titles flagged by normalised comparison, and inactive macros listed</div>
-    </div>
-  </section>
-  <section>
-    <h2>Install and usage</h2>
-    <p class="note">Requires Node.js 20 or later. There are no dependencies to install.</p>
-    <pre><code>git clone https://github.com/aamirtechs/helpdesk-macro-lint.git
-cd helpdesk-macro-lint
-node src/cli.js examples/macros.json --deleted-fields examples/deleted-fields.txt --out-dir out</code></pre>
-    <p class="note">Input is a Zendesk macros JSON export, either a top-level array or an object with a macros array. The run writes report.md and findings.csv. Exit code is 1 when errors exist.</p>
-  </section>
+
+<section class="tool" id="tool">
+  <h2>Use it in your browser</h2>
+  <p class="note">Runs fully in your browser, files never leave your device. Drop a Zendesk or Freshdesk macros JSON export below, or paste its contents. Optionally add a deleted-fields list (one field name per line, the CLI --deleted-fields option). Broken or unknown placeholders are errors; http links, deleted field references, duplicate titles and inactive macros are warnings.</p>
+  <label for="file">Macros export (macros.json)</label>
+  <input type="file" id="file" accept=".json">
+  <p class="note" id="dropName">You can also drag and drop the file anywhere on this panel.</p>
+  <label for="paste">Or paste macros JSON</label>
+  <textarea id="paste" placeholder="Paste a top-level array or an object with a macros array"></textarea>
+  <label for="dfile">Deleted fields file (optional, .txt)</label>
+  <input type="file" id="dfile" accept=".txt">
+  <label for="deleted">Or paste deleted fields, one per line (optional)</label>
+  <textarea id="deleted" style="min-height:64px" placeholder="legacy_account_code"></textarea>
+  <button class="go" id="run">Lint macros</button>
+  <div id="status" role="status"></div>
+  <ul class="counts" id="counts"></ul>
+  <div id="downloads"></div>
+</section>
+<section id="reportWrap" class="hidden">
+  <h2>Report (report.md)</h2>
+  <pre class="out" id="report"></pre>
+</section>
+
 </main>
 <footer>
   <p>Built by Amir Hussain, operations manager and founder of AamirTechs.</p>
   <p class="links"><a href="https://aamirtechs.com">AamirTechs: operations, customer support and e-commerce services</a> <a href="https://github.com/aamirtechs">More open source tools</a></p>
 </footer>
+<script src="app.js"></script>
+<script>
+(function () {
+
+function download(name, text, type) {
+  var blob = new Blob([text], { type: type || 'text/plain;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+}
+function makeDl(label, name, text, type) {
+  var b = document.createElement('button'); b.className = 'dl'; b.textContent = label;
+  b.addEventListener('click', function () { download(name, text, type); });
+  return b;
+}
+function wireDrop(zone, input, store) {
+  zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', function () { zone.classList.remove('dragover'); });
+  zone.addEventListener('drop', function (e) {
+    e.preventDefault(); zone.classList.remove('dragover');
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    store.file = f;
+    try { var dt = new DataTransfer(); dt.items.add(f); input.files = dt.files; } catch (err) {}
+    var note = document.getElementById('dropName');
+    if (note) note.textContent = 'Loaded file: ' + f.name;
+  });
+}
+async function readInput(store, input, textarea) {
+  var f = store.file || (input.files && input.files[0]);
+  if (f) return { text: await f.text(), name: f.name };
+  return { text: textarea.value, name: '' };
+}
+
+var store = {};
+wireDrop(document.getElementById('tool'), document.getElementById('file'), store);
+document.getElementById('run').addEventListener('click', async function () {
+  var status = document.getElementById('status');
+  var downloads = document.getElementById('downloads');
+  var countsEl = document.getElementById('counts');
+  var reportWrap = document.getElementById('reportWrap');
+  status.className = ''; status.textContent = ''; downloads.innerHTML = ''; countsEl.innerHTML = ''; reportWrap.classList.add('hidden');
+  try {
+    var input = await readInput(store, document.getElementById('file'), document.getElementById('paste'));
+    if (!input.text.trim()) { status.className = 'error'; status.textContent = 'Choose a macros JSON file or paste its contents first.'; return; }
+    var dfile = document.getElementById('dfile').files && document.getElementById('dfile').files[0];
+    var deletedText = dfile ? await dfile.text() : document.getElementById('deleted').value;
+    var api = window.HelpdeskMacroLint;
+    var macros = api.parseMacros(JSON.parse(input.text));
+    var deletedFields = deletedText.split(/\r?\n/);
+    var findings = api.lintMacros(macros, { deletedFields: deletedFields });
+    var esc = function (v) { var s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replaceAll('"', '""') + '"' : s; };
+    var lines = ['macro_id,title,rule,severity,message'];
+    findings.forEach(function (f) { lines.push([f.macro_id, f.title, f.rule, f.severity, f.message].map(esc).join(',')); });
+    var findingsCsv = lines.join('\n') + '\n';
+    var report = api.buildReport(macros, findings);
+    var errors = findings.filter(function (f) { return f.severity === 'error'; }).length;
+    status.textContent = 'Checked ' + macros.length + ' macros, found ' + findings.length + ' findings (' + errors + ' errors).';
+    var counts = {};
+    findings.forEach(function (f) { counts[f.rule] = (counts[f.rule] || 0) + 1; });
+    Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).forEach(function (rule) {
+      var li = document.createElement('li'); li.textContent = rule + ': ' + counts[rule]; countsEl.appendChild(li);
+    });
+    downloads.appendChild(makeDl('Download findings.csv', 'findings.csv', findingsCsv, 'text/csv;charset=utf-8'));
+    downloads.appendChild(makeDl('Download report.md', 'report.md', report, 'text/markdown;charset=utf-8'));
+    document.getElementById('report').textContent = report;
+    reportWrap.classList.remove('hidden');
+  } catch (e) { status.className = 'error'; status.textContent = e.message; }
+});
+
+})();
+</script>
 </body>
 </html>
