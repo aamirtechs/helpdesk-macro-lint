@@ -1,4 +1,5 @@
 # helpdesk-macro-lint
+Live page: https://aamirtechs.github.io/helpdesk-macro-lint/
 
 Lint an exported Zendesk or Freshdesk macro library like code: broken or unknown placeholders, dead http links, references to deleted fields, near-duplicate titles and inactive macros, in one Markdown and CSV report.
 
