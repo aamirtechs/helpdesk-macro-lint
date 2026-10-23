@@ -1,0 +1,19 @@
+{
+  "name": "helpdesk-macro-lint",
+  "version": "1.0.0",
+  "description": "Lint an exported Zendesk or Freshdesk macro library like code: broken or unknown placeholders, dead http links, references to deleted fields, near-duplicate titles and inactive macros, in one Markdown and CSV report.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "helpdesk-macro-lint": "src/cli.js"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [],
+  "author": "Amir Hussain"
+}

@@ -1,0 +1,42 @@
+{
+  "macros": [
+    {
+      "id": 101,
+      "title": "Refund reply",
+      "active": true,
+      "description": "Standard refund response",
+      "actions": [
+        { "field": "comment_value", "value": "Hi {{ticket.requester.first_name}}, your refund is on its way. See https://example.com/refunds for timing." },
+        { "field": "status", "value": "pending" }
+      ]
+    },
+    {
+      "id": 102,
+      "title": "Refund Reply!",
+      "active": true,
+      "description": "Duplicate refund response",
+      "actions": [
+        { "field": "comment_value", "value": "Hi {{ticket.requester.firstname}}, read http://example.com/old-refund-page for details." }
+      ]
+    },
+    {
+      "id": 103,
+      "title": "Legacy account closure",
+      "active": false,
+      "description": "Old closure flow using a removed field",
+      "actions": [
+        { "field": "comment_value", "value": "Closing this account for {{ticket.requester.name}}. Legacy code: legacy_account_code" },
+        { "field": "ticket.custom_field_999", "value": "closed" }
+      ]
+    },
+    {
+      "id": 104,
+      "title": "Shipping delay update",
+      "active": true,
+      "description": "Shipping delay notice",
+      "actions": [
+        { "field": "comment_value", "value": "Hi {{ticket.requester.name}}, your order linked to ticket {{ticket.id}} is delayed." }
+      ]
+    }
+  ]
+}
